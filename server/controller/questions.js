@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import question from "../models/question.js";
 
 
-export const Askquestion = async (req, res) => {
+export const askquestion = async (req, res) => {
   const { postquestiondata } = req.body;
   const postques = new question({ ...postquestiondata });
   try {
@@ -38,45 +38,77 @@ export const deletequestion = async (req, res) => {
     return;
   }
 };
+
 export const votequestion = async (req, res) => {
   const { id: _id } = req.params;
-  const { value ,userid} = req.body;
+  const userid = String(req.userid);
+  const { value } = req.body;
+
   if (!mongoose.Types.ObjectId.isValid(_id)) {
-    return res.status(400).json({ message: "question unavailable" });
+    return res.status(400).json({
+      message: "Invalid question ID.",
+    });
   }
+
+  if (value !== "upvote" && value !== "downvote") {
+    return res.status(400).json({
+      message: "Invalid vote type.",
+    });
+  }
+
   try {
     const questionDoc = await question.findById(_id);
-    const upindex = questionDoc.upvote.findIndex((id) => id === String(userid));
-    const downindex = questionDoc.downvote.findIndex(
-      (id) => id === String(userid)
+
+    if (!questionDoc) {
+      return res.status(404).json({
+        message: "Question not found.",
+      });
+    }
+
+    const hasUpvoted = questionDoc.upvote.some(
+      (id) => id === userid
     );
+
+    const hasDownvoted = questionDoc.downvote.some(
+      (id) => id === userid
+    );
+
     if (value === "upvote") {
-      if (downindex !== -1) {
-        questionDoc.downvote = questionDoc.downvote.filter(
-          (id) => id !== String(userid)
+      questionDoc.downvote = questionDoc.downvote.filter(
+        (id) => id !== userid
+      );
+
+      if (hasUpvoted) {
+        questionDoc.upvote = questionDoc.upvote.filter(
+          (id) => id !== userid
         );
-      }
-      if (upindex === -1) {
+      } else {
         questionDoc.upvote.push(userid);
-      } else {
-        questionDoc.upvote = questionDoc.upvote.filter((id) => id !== String(userid));
       }
-    } else if (value === "downvote") {
-      if (upindex !== -1) {
-        questionDoc.upvote = questionDoc.upvote.filter((id) => id !== String(userid));
-      }
-      if (downindex === -1) {
-        questionDoc.downvote.push(userid);
-      } else {
+    } else {
+      questionDoc.upvote = questionDoc.upvote.filter(
+        (id) => id !== userid
+      );
+
+      if (hasDownvoted) {
         questionDoc.downvote = questionDoc.downvote.filter(
-          (id) => id !== String(userid)
+          (id) => id !== userid
         );
+      } else {
+        questionDoc.downvote.push(userid);
       }
     }
-    const questionvote = await question.findByIdAndUpdate(_id, questionDoc, { new: true });
-    res.status(200).json({ data: questionvote });
+
+    await questionDoc.save();
+
+    return res.status(200).json({
+      data: questionDoc,
+    });
   } catch (error) {
-    res.status(500).json("something went wrong..");
-    return;
+    console.error("Vote question error:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong while voting.",
+    });
   }
 };
