@@ -254,15 +254,14 @@ export default function UserProfilePage() {
 
               {isOwnProfile && (
                 <Dialog open={isEditing} onOpenChange={setIsEditing}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2 text-gray-700"
-                    >
-                      <Edit className="h-4 w-4" />
-                      Edit Profile
-                    </Button>
-                  </DialogTrigger>
+                  <Button
+                    variant="outline"
+                    className="flex items-center gap-2 text-gray-700"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit Profile
+                  </Button>
 
                   <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto bg-white p-6 text-gray-900">
                     <DialogHeader>
